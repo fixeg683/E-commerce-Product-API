@@ -1,12 +1,12 @@
-# render.yaml
-# Render Infrastructure-as-Code (IaC) configuration for Django (SQLite)
+# backend/render.yaml
+# Render configuration for deploying Django (SQLite, no Docker)
 
 services:
   - type: web
     name: ecommerce-product-api
     env: python
-    plan: free                      # You can upgrade to 'starter' or 'standard' later
-    region: oregon                  # Or choose 'frankfurt', 'singapore', etc.
+    plan: free
+    rootDir: backend            # 👈 tells Render to use /backend as the working directory
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
@@ -29,17 +29,7 @@ services:
         value: "sqlite:///db.sqlite3"
       - key: RENDER
         value: "True"
-
-    autoDeploy: true
-    buildFilter:
-      paths:
-        - requirements.txt
-        - manage.py
-        - E-commerce-Product-API/**
-        - api/**
-        - render.yaml
-   startCommand: |
-  python manage.py migrate && \
-  python manage.py collectstatic --noinput && \
-  gunicorn E-commerce-Product-API.wsgi:application
-
+      - key: STATIC_ROOT
+        value: "/opt/render/project/src/backend/staticfiles"
+      - key: MEDIA_ROOT
+        value: "/opt/render/project/src/backend/media"
