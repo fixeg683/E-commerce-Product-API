@@ -1,29 +1,34 @@
 # backend/render.yaml
-# Render configuration for deploying Django (SQLite, no Docker)
+# Render configuration for deploying Django (SQLite + Whitenoise, no Docker)
 
 services:
   - type: web
     name: ecommerce-product-api
     env: python
     plan: free
-    rootDir: backend            # ✅ tells Render to use /backend as the working directory
 
+    # ✅ Render will treat /backend as the working directory
+    rootDir: backend
+
+    # 🧩 Build Phase — install dependencies
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
 
+    # 🚀 Start Command — apply migrations, collect static files, then start Gunicorn
     startCommand: |
       python manage.py migrate && \
       python manage.py collectstatic --noinput && \
       gunicorn backend.wsgi:application
 
+    # 🌍 Environment Variables for Django
     envVars:
       - key: SECRET_KEY
-        value: "django-insecure-change-this-secret-key"
+        value: "django-insecure-change-this-secret-key"   # 🔐 replace with a secure one before deploy
       - key: DEBUG
         value: "False"
       - key: ALLOWED_HOSTS
-        value: "ecommerce-product-api.onrender.com"
+        value: "ecommerce-product-api.onrender.com,localhost,127.0.0.1"
       - key: DJANGO_SETTINGS_MODULE
         value: "backend.settings"
       - key: PYTHON_VERSION
@@ -36,3 +41,5 @@ services:
         value: "/opt/render/project/src/backend/staticfiles"
       - key: MEDIA_ROOT
         value: "/opt/render/project/src/backend/media"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://ecommerce-product-api.onrender.com"
