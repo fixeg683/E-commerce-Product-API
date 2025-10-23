@@ -38,3 +38,8 @@ services:
         - E-commerce-Product-API/**
         - api/**
         - render.yaml
+   startCommand: |
+  python manage.py migrate && \
+  python manage.py collectstatic --noinput && \
+  gunicorn E-commerce-Product-API.wsgi:application
+
