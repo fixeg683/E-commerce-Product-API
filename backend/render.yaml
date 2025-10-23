@@ -6,15 +6,17 @@ services:
     name: ecommerce-product-api
     env: python
     plan: free
-    rootDir: backend            # 👈 tells Render to use /backend as the working directory
+    rootDir: backend            # ✅ tells Render to use /backend as the working directory
+
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
+
     startCommand: |
-      cd backend && \
       python manage.py migrate && \
       python manage.py collectstatic --noinput && \
-      gunicorn E-commerce-Product-API.wsgi:application
+      gunicorn backend.wsgi:application
+
     envVars:
       - key: SECRET_KEY
         value: "django-insecure-change-this-secret-key"
@@ -23,7 +25,7 @@ services:
       - key: ALLOWED_HOSTS
         value: "ecommerce-product-api.onrender.com"
       - key: DJANGO_SETTINGS_MODULE
-        value: "E-commerce-Product-API.settings"
+        value: "backend.settings"
       - key: PYTHON_VERSION
         value: "3.12.6"
       - key: DATABASE_URL
