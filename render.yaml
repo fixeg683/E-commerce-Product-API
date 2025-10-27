@@ -1,0 +1,39 @@
+# backend/render.yaml
+services:
+  - type: web
+    name: ecommerce-product-api
+    env: python
+    plan: free
+    rootDir: backend
+
+    # 🧩 Build Phase - Fixed commands
+    buildCommand: |
+      python -m pip install --upgrade pip
+      python -m pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+
+    # 🚀 Start Command
+    startCommand: |
+      python manage.py migrate --noinput
+      gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
+
+    # 🌍 Environment Variables
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: DJANGO_SETTINGS_MODULE
+        value: "core.settings"
+      - key: RENDER
+        value: "True"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+    # 🔧 Disk for SQLite persistence
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/backend/data
+      sizeGB: 1
