@@ -22,18 +22,26 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-your-default-secret-k
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-# Allow all hosts for Render, or specify your domain
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '.onrender.com',  # Allow all Render subdomains
-    '.yourdomain.com',  # Add your custom domain if you have one
-]
+# Render detection
+RENDER = os.environ.get('RENDER', 'False').lower() == 'true'
 
-# Add your Render service URL
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+# Allow all hosts for Render, or specify your domain
+ALLOWED_HOSTS = []
+
+# Add your Render service URL and other hosts
+if RENDER:
+    RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+    if RENDER_EXTERNAL_HOSTNAME:
+        ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    # Also allow all render subdomains
+    ALLOWED_HOSTS.extend(['.onrender.com', '.yourdomain.com'])
+
+# Add local hosts for development
+ALLOWED_HOSTS.extend(['localhost', '127.0.0.1'])
+
+# If ALLOWED_HOSTS is still empty, use wildcard for development
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -88,17 +96,30 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Development database (SQLite)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Use disk path for SQLite on Render for persistent storage
+if RENDER:
+    # On Render, use the mounted disk path for SQLite
+    DATA_DIR = os.path.join(BASE_DIR, 'data')
+    os.makedirs(DATA_DIR, exist_ok=True)  # Ensure data directory exists
+    
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(DATA_DIR, 'db.sqlite3'),
+        }
     }
-}
+else:
+    # Local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
-# Render PostgreSQL database (if using)
+# Render PostgreSQL database (if using in future)
 DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
+if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
     DATABASES['default'] = dj_database_url.config(
         default=DATABASE_URL,
         conn_max_age=600,
@@ -137,9 +158,16 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Media files (Uploaded by users)
+# Media files (Uploaded by users) - use disk path on Render
+if RENDER:
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'data', 'media')
+else:
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Ensure media directory exists
+os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 # Static files configuration for production
 if not DEBUG:
@@ -169,6 +197,12 @@ CORS_ALLOWED_ORIGINS = [
 
 # For development, you can allow all origins (not recommended for production)
 CORS_ALLOW_ALL_ORIGINS = DEBUG
+
+# CSRF trusted origins for production
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
+    'https://*.yourdomain.com',
+]
 
 # Security settings for production
 if not DEBUG:
@@ -201,3 +235,10 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+# Auto-create data directory on startup
+try:
+    os.makedirs(os.path.join(BASE_DIR, 'data'), exist_ok=True)
+    print(f"✅ Data directory ready at: {os.path.join(BASE_DIR, 'data')}")
+except Exception as e:
+    print(f"⚠️ Could not create data directory: {e}")
