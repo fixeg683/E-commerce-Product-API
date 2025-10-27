@@ -5,16 +5,16 @@ services:
     plan: free
     rootDir: backend
 
-    # 🧩 Build Phase - Use explicit Python paths
+    # 🧩 Build commands assume we're already in backend/ due to rootDir
     buildCommand: |
-      pip install --upgrade pip
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
 
     # 🚀 Start Command
-    startCommand: gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
+    startCommand: |
+      python manage.py migrate --noinput
+      gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
 
-    # 🌍 Environment Variables
     envVars:
       - key: SECRET_KEY
         generateValue: true
@@ -22,5 +22,3 @@ services:
         value: "False"
       - key: DJANGO_SETTINGS_MODULE
         value: "core.settings"
-      - key: PYTHON_VERSION
-        value: "3.11.8"
