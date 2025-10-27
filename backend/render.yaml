@@ -14,32 +14,28 @@ services:
     buildCommand: |
       pip install --upgrade pip
       pip install -r requirements.txt
+      python manage.py collectstatic --noinput
 
-    # 🚀 Start Command — apply migrations, collect static files, then start Gunicorn
-    startCommand: |
-      python manage.py migrate && \
-      python manage.py collectstatic --noinput && \
-      gunicorn backend.wsgi:application
+    # 🚀 Start Command — start Gunicorn
+    startCommand: gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
 
     # 🌍 Environment Variables for Django
     envVars:
       - key: SECRET_KEY
-        value: "django-insecure-change-this-secret-key"   # 🔐 replace with a secure one before deploy
+        generateValue: true   # 🔐 Let Render generate a secure key
       - key: DEBUG
         value: "False"
       - key: ALLOWED_HOSTS
-        value: "ecommerce-product-api.onrender.com,localhost,127.0.0.1"
+        value: ".onrender.com,localhost,127.0.0.1"
       - key: DJANGO_SETTINGS_MODULE
-        value: "backend.settings"
+        value: "core.settings"
       - key: PYTHON_VERSION
-        value: "3.12.6"
-      - key: DATABASE_URL
-        value: "sqlite:///db.sqlite3"
+        value: "3.11.0"  # ✅ Use a version compatible with your Django
       - key: RENDER
         value: "True"
-      - key: STATIC_ROOT
-        value: "/opt/render/project/src/backend/staticfiles"
-      - key: MEDIA_ROOT
-        value: "/opt/render/project/src/backend/media"
-      - key: CSRF_TRUSTED_ORIGINS
-        value: "https://ecommerce-product-api.onrender.com"
+
+    # 🔧 Advanced configuration
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/backend/data
+      sizeGB: 1
