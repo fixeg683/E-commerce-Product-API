@@ -1,40 +1,38 @@
 # backend/render.yaml
-# Render configuration for deploying Django (SQLite + Whitenoise, no Docker)
-
 services:
   - type: web
     name: ecommerce-product-api
     env: python
     plan: free
-
-    # ✅ Render will treat /backend as the working directory
     rootDir: backend
 
-    # 🧩 Build Phase — install dependencies
+    # 🧩 Build Phase - Fixed commands
     buildCommand: |
-      pip install --upgrade pip
-      pip install -r requirements.txt
+      python -m pip install --upgrade pip
+      python -m pip install -r requirements.txt
       python manage.py collectstatic --noinput
 
-    # 🚀 Start Command — start Gunicorn
-    startCommand: gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
+    # 🚀 Start Command
+    startCommand: |
+      python manage.py migrate --noinput
+      gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
 
-    # 🌍 Environment Variables for Django
+    # 🌍 Environment Variables
     envVars:
       - key: SECRET_KEY
-        generateValue: true   # 🔐 Let Render generate a secure key
+        generateValue: true
       - key: DEBUG
         value: "False"
-      - key: ALLOWED_HOSTS
-        value: ".onrender.com,localhost,127.0.0.1"
       - key: DJANGO_SETTINGS_MODULE
         value: "core.settings"
-      - key: PYTHON_VERSION
-        value: "3.11.0"  # ✅ Use a version compatible with your Django
       - key: RENDER
         value: "True"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      - key: PYTHON_VERSION
+        value: "3.11.0"
 
-    # 🔧 Advanced configuration
+    # 🔧 Disk for SQLite persistence
     disk:
       name: data
       mountPath: /opt/render/project/src/backend/data
